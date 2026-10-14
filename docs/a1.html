@@ -10,9 +10,209 @@
   </head>
   <body>
     <h1>Quinn's Assignment 1!</h1>
-    <div class="header">
+    <!-- <div class="header">
       <img src="red-panda.jpg" />
       <p>Here is all the documentation for assignment 1!</p>
+    </div> -->
+
+    <h2>schematic (image)</h2>
+    <figure>
+      <img src="schematicV1.jpg">
+      <figcaption>First version of schematic, plus calculations and reasoning</figcaption>
+    </figure>
+    <!-- <h3>Explanation</h3>
+    <p></p> -->
+
+    <figure>
+      <img src="schematicV2.jpg">
+      <figcaption>Second version with the two added potentiometers</figcaption>
+    </figure>
+
+    <h2>circuit (image)</h2>
+    <figure>
+      <img src="circuitV1.jpg">
+      <figcaption>Version 1</figcaption>
+    </figure>
+    <figure>
+      <img src="circuitV2.jpg">
+      <figcaption>Version 2 with the two added potentiometers</figcaption>
+    </figure>
+
+    <h2>firmware (code snippet)</h2>
+    <h3>Version 1 with the two potentiometers</h3>
+    <div>
+      <pre><code>
+// Defining the digital pins being used as constants to make potential future changes easier
+const int ledPins[] = {5, 6, 9};
+const int powerPin = 8;
+
+// Defines minimum bound for LED brightness to be very dim instead of completely off 
+const int minBrightness = 1;
+// The green LED was much brighter than the others so this defines its adjusted max brightness to better visually match the others
+const int greenAdjustedMax = (255 - 240);
+
+// Defines the bounds of the variable blink rate
+const int blinkWaitMin = 20;
+const int blinkWaitMax = 1000;
+
+
+void setup() {
+// Sets the rate that the Arduino checks data from the potentiometers and initializes it
+Serial.begin(9600);
+
+// Sets the power pin to actually be a power pin (I did this instead of using the dedicated 5V pin mainly for the aesthetics of the circuit)
+pinMode(powerPin, OUTPUT);
+digitalWrite(powerPin, HIGH);
+
+// Iterates through the LED pin array, setting them as OUTPUT to configure them to be able to power things
+for (int v : ledPins) {
+  pinMode(v, OUTPUT);
+  }
+}
+
+void loop() {
+// Declares neccesary variables for potentiometer logic
+int brightness;
+int blinkRate;
+
+// Iterates through the LED pin array, setting their brightness and blinkRate variables based on the left and right potentiometer values respectively 
+for (int v : ledPins) {
+  
+  // The conditional logic is neccessary for the green LED max brightness adjustment
+  if (v == 9) {
+    brightness = map(analogRead(A5), 0, 1023, minBrightness, greenAdjustedMax);
+  } else {
+    brightness = map(analogRead(A5), 0, 1023, minBrightness, 255);
+  }
+  
+  // Sets the time between blinks based on the right potentiometer value, mapping the potentiometer min max to the min max defined by the programmer
+  blinkRate =  map(analogRead(A0), 0, 1023, blinkWaitMax, blinkWaitMin);
+
+  // Turns the LED on to the brightness calculated above, waits the amount blinkRate that were calculated above, then finally turns the LED off
+  analogWrite(v, brightness);
+  delay(blinkRate);
+  analogWrite(v, 0);
+  }
+}
+        </code>
+      </pre>
     </div>
+    <h3>Version 2 using millis() instead of delay() so that potentiometer values can be read and updated even between blink cycles</h3>
+    <div>
+      <pre><code>
+// Defining the digital pins being used as constants to make potential future changes easier
+const int ledPins[] = {5, 6, 9};
+const int powerPin = 8;
+
+// Defines minimum bound for LED brightness to be very dim instead of completely off 
+const int minBrightness = 1;
+
+// The green LED was much brighter than the others so this defines its adjusted max brightness to better visually match the others
+const int greenAdjustedMax = (255 - 240);
+const int greenLedPinIndex = 2;
+
+
+// Defines the bounds of the variable blink rate
+const int blinkWaitMin = 20;
+const int blinkWaitMax = 1000;
+
+// Defines vars needed for the timer logic
+long prevMillis = 0;
+int currLedIndex = 0;
+
+// Work around needed for lack of array length function in .ino code
+int numLeds = sizeof(ledPins) / sizeof(ledPins[0]);
+
+
+void setup() {
+  // Sets the rate that the Arduino checks data from the potentiometers and initializes it
+  Serial.begin(9600);
+
+  // Sets the power pin to actually be a power pin (I did this instead of using the dedicated 5V pin mainly for the aesthetics of the circuit)
+  pinMode(powerPin, OUTPUT);
+  digitalWrite(powerPin, HIGH);
+
+  // Iterates through the LED pin array, setting them as OUTPUT to configure them to be able to power things
+  for (int v : ledPins) {
+    pinMode(v, OUTPUT);
+  }
+}
+
+void loop() {
+  // Declares neccesary variables for potentiometer logic
+  int brightness;
+  int blinkRate;
+  int leftPotentVal = analogRead(A5);
+  int rightPotentVal = analogRead(A0);
+  
+  // Sets the time between blinks based on the right potentiometer value, mapping the potentiometer min max to the min max defined by the programmer
+  blinkRate =  map(rightPotentVal, 0, 1023, blinkWaitMax, blinkWaitMin);
+
+  long currMillis = millis();
+
+  // If the amount of time specified in blinkRate has elapsed, then change the LEDs 
+  if (millis() - prevMillis >= blinkRate) {
+    // Turn the current LED off 
+    analogWrite(ledPins[currLedIndex], 0);
+
+    // Advances the index 
+    currLedIndex ++;
+    
+    // Circles the index back to 0 once it's reached the end of the LED pin array
+    if (currLedIndex >= numLeds) {
+      currLedIndex = 0;
+    }
+
+    // Timer logic
+    prevMillis = currMillis;
+      
+    // The conditional logic is neccessary for the green LED max brightness adjustment
+    if (currLedIndex == greenLedPinIndex) {
+      brightness = map(leftPotentVal, 0, 1023, minBrightness, greenAdjustedMax);
+    } else {
+      brightness = map(leftPotentVal, 0, 1023, minBrightness, 255);
+    }
+
+    // Turns the new current LED on to the brightness calculated in the brightness variable
+    analogWrite(ledPins[currLedIndex], brightness);
+  }
+}
+      </pre></code>
+    </div>
+
+    <h2>circuit's operation (animated gif)</h2>
+    <figure>
+      <img src="demo.gif">
+      <figcaption>GIF of the circuit working (the blinking out of order at high speeds is an artifact of the GIF frame rate. It doesn't do that in real life)</figcaption>
+    </figure>
+
+    <h2>questions (text)</h2>
+    <h3>1: Draw a graph where the X axis is time and the Y axis is voltage across the LEDs. Draw a line for each of your 3 LEDs.</h3> 
+    <figure>
+      <img src="graph.png">
+      <figcaption>This pattern continues, this graph just shows a snippet in time</figcaption>
+    </figure>
+    
+    <h3>2: How many LEDs could you blink independently with your Arduino? How much current would that draw?</h3>
+    <p>
+      <ul>
+        <li>Assuming no funny business like multiplexing, you can blink as many LEDs as there are pins on the Arduino Uno that can be configured as digital out, which would be 20. Since no more than one LED would be on at the same time so it wouldn’t draw more than that one LED which for the LEDs used in this circuit would be 20 mA.</li>
+      </ul>
+    </p>
+    <h3>3: How fast do you need to blink your LEDs until you no longer can tell that they are blinking?</h3>
+    <p>
+      <ul>
+        <li>I can no longer tell they’re blinking once it’s blinking every 20ms.
+      </ul>
+    </p>
+    <h3>4: Did you use AI tools in completing this assignment? If yes, please provide details on how/when, as well as a brief reflection. If no, you can either leave this question blank, or provide other information if you'd like.</h3>
+    <p>
+      <ul>
+        <li>I did not use AI tools, just a bazillion Google tabs and old Arduino forum posts.
+      </ul>
+    </p>
+
+
+
   </body>
 </html>
