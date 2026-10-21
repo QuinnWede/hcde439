@@ -67,6 +67,10 @@ void setup() {
   // Configure pins used for switching LEDs 
   for (int v : ledPins) {
     pinMode(v, OUTPUT);
+    // Visual confirmation that pins have been set up
+    digitalWrite(v, HIGH);
+    delay(100);
+    digitalWrite(v, LOW);
   }
 }
 
