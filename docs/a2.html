@@ -10,9 +10,154 @@
   </head>
   <body>
     <h1>Quinn's Assignment 2!</h1>
-    <div class="header">
+    <!-- <div class="header">
       <img src="red-panda.jpg" />
-      <p>Here is all the documentation for assignment 2!</p>
+      <p>Here is all the documentation for assignment 1!</p>
+    </div> -->
+
+    <h2>schematic (image)</h2>
+    <figure>
+      <img src="assets/a2/schematicPlusMath.jpg">
+      <figcaption>The circuit schematic, plus calculations and reasoning</figcaption>
+    </figure>
+    <!-- <h3>Explanation</h3>
+    <p></p> -->
+
+    <h2>circuit (image)</h2>
+    <figure>
+      <img src="assets/a2/circuitIRL.jpg">
+      <figcaption>The physical manifestation of my circuit schematic</figcaption>
+    </figure>
+
+    <h2>firmware (code snippet)</h2>
+    <div>
+      <pre><code>
+// ===== VARIABLE SETUP ===== //
+// Defining the digital pins being used as constants to make potential future changes easier
+const int ledPins[] = {5, 6, 9};
+const int buttonReadPin = A5;
+
+// Defining the time each LED takes to blink (blinkRate) and the granularity (lower value = smoother) of the fading (fadeStepsPerBlink)   
+const unsigned long blinkRate = 500;
+const int fadeStepsPerBlink = 100; // Range of 2-510
+const unsigned long fadeFrameRate = blinkRate / fadeStepsPerBlink;
+
+// Translates fade steps
+int fadeIncrement = 255 / (fadeStepsPerBlink / 2);
+
+// Defining variables neccessary for the blink and fade timer logic
+unsigned long prevMillis = 0;
+unsigned long prevMillisFade = 0;
+
+// LED index tracking needed for the futureproofing LED logic
+int currLedIndex = 0;
+int numLeds = sizeof(ledPins) / sizeof(ledPins[0]);
+
+// Keeps track of the current brightness of the LED
+int brightness = 0;
+
+
+// ===== PIN SETUP ===== //
+void setup() {
+  // Begin serial neccessary for analogRead
+  Serial.begin(9600);
+  // Configure button reading pin
+  pinMode(buttonReadPin, INPUT);
+
+  // Configure pins used for switching LEDs 
+  for (int v : ledPins) {
+    pinMode(v, OUTPUT);
+  }
+}
+
+
+// ===== MAIN LOOP LOGIC ===== //
+void loop() {
+
+
+  // ===== BUTTON LOGIC ===== //
+  // Freezes fading LEDs when button is pressed down
+  while (digitalRead(buttonReadPin) == HIGH) {
+    delay(50);
+  }
+
+  
+  // Instantiate variable needed for the blink and fade timer logic 
+  unsigned long currMillis = millis();
+
+
+  // ===== FADING LOGIC ===== //
+  // If the time that has passed is greater or equal to fade frame rate, adjust brightness by the fade increment
+  if (currMillis - prevMillisFade >= fadeFrameRate) {
+    prevMillisFade = currMillis;
+
+    // Calculates brightness value
+    brightness += fadeIncrement;
+    
+    // Flip the direction of fading once reached the min or max accordingly 
+    if (brightness <= 0 || brightness >= 255) {
+      fadeIncrement = -fadeIncrement;
+    }
+
+    // Sets the current LEDs' brightness
+    analogWrite(ledPins[currLedIndex], brightness);
+  }
+
+
+  // ===== BLINKING LOGIC ===== //
+  // If the time that has passed is greater or equal to the blink rate, switch to the next LED
+  if (currMillis - prevMillis >= blinkRate) {
+    // Updates blink timer logic
+    prevMillis = currMillis;
+    
+    // Ensures current LED is faded completely off
+    analogWrite(ledPins[currLedIndex], 0);
+
+    // Advances index to control next LED
+    currLedIndex++;
+    
+    // Reset the index once it's cycled through all LEDs
+    if (currLedIndex >= numLeds) {
+      currLedIndex = 0;
+    }
+
+    // Resets brightness and fade increment values
+    brightness = 0;
+    fadeIncrement = abs(fadeIncrement);
+
+    // Updates fade timer logic
+    prevMillisFade = currMillis;
+  }
+}
+        </code>
+      </pre>
     </div>
+    
+    <h2>circuit's opetration (animated gif)</h2>
+    <figure>
+      <img src="assets/a2/gifOfOperation.gif">
+      <figcaption>GIF of the circuit working</figcaption>
+    </figure>
+
+    <h2>questions (text)</h2>
+    <h3>1: Draw a chart where the X axis is time and the Y axis is voltage. Draw 3 lines representing the voltage across an LED with analogWrite(led, 64), analogWrite(led, 128), and analogWrite(led, 255).</h3> 
+    <figure>
+      <img src="assets/a2/graph.jpg">
+      <figcaption>This pattern continues, this graph just shows a snippet in time</figcaption>
+    </figure>
+    
+    <h3>2: If all your LEDs were on simultaneously, what would the total current draw be? Is this above or below the total Arduino current draw limits? If all your LEDs were on, how long would your circuit run if powered by a 1200 mAh battery?</h3>
+    <p>
+      <ul>
+        <li>The total current draw would be 60mA. This is below the total Arduino current draw limit. Since each LED is powered by its own pin (a pin has a limit of 40mA), the limit to look for is the max current draw allowed by the ATMega chip as a whole which is 200mA. A 1200 mAh battery could run 3 simultaneously powered LEDs with a current of 60mA for 20 hours (1200 / 60).</li>
+      </ul>
+    </p>
+    <h3>3: Measure and record the actual voltage across one of your LEDs when it's on. How does this compare to the theoretical forward voltage for your LED color?</h3>
+    <p>
+      <ul>
+        <li>The voltage across one of my LEDs was measured at 1.95V. This is lower than the theoretical forward voltage for my LED color of 2V.</li>
+      </ul>
+    </p>
+    <h3>4: Did you use AI tools in completing this assignment? If yes, please provide details on how/when, as well as a brief reflection. If no, you can either leave this question blank, or provide other information if you'd like.</h3>
   </body>
 </html>
