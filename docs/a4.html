@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, maximum-scale=1.0" />
+
+    <title>Quinn's HCDE 439 Physical Computing Page!</title>
+
+    <link href="style.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <h1>Quinn's Assignment 4!</h1>
+    <!-- <div class="header">
+      <img src="red-panda.jpg" />
+      <p>Here is all the documentation for assignment 1!</p>
+    </div> -->
+
+    <h2>schematic (image)</h2>
+    <figure>
+      <img src="assets/a4/schematic.jpg">
+      <figcaption>The circuit schematic, plus explanation and reasoning for my resistor values</figcaption>
+    </figure>
+    <!-- <h3>Explanation</h3>
+    <p></p> -->
+
+    <h2>circuit (image)</h2>
+    <figure>
+      <img src="assets/a4/circuit1.jpg">
+      <figcaption>The physical manifestation of my circuit schematic</figcaption>
+    </figure>
+
+    <h2>circuit (image)</h2>
+    <figure>
+      <img src="assets/a4/circuit2.jpg">
+      <figcaption>5 1M Ohm resistors wired in series using alligator clips AKA I didn't want to deal with trying to get the resistors back in the tape when I dissasemble everything</figcaption>
+    </figure>
+
+    <h2>firmware (code snippet)</h2>
+    <div>
+      <pre><code>
+// Imports the capacitive sensor and servo libraries for use
+// External source capacitive sensor library made by Paul Badger, Paul Stoffregen
+#include &lt;CapacitiveSensor.h&gt;
+// External source servo library made by Michael Margolis, Arduino
+#include &lt;Servo.h&gt;
+
+// Stores the capacitive sensor send and receive pins in variables so it's easier to change in the future if needed
+const int capacSendPin = 5;
+const int capacReceivePin = 6;
+// Sets the min and max values for the capacitive sensor reading that I got by observing the serial monitor printing the values
+const int capacSensorMin = 0;
+const int capacSensorMax = 300;
+// Sets up the send and receive pins for the capacitive sensor, first param is send, second is receive
+CapacitiveSensor capacSensor = CapacitiveSensor(capacSendPin,capacReceivePin); 
+
+// create Servo object to control a servo
+Servo myServo;
+
+void setup() {
+  // Setup for print statements
+  Serial.begin(9600);
+  // Attaches the servo on pin 3 to the Servo object
+  myServo.attach(3);  
+}
+
+void loop() {
+  // Reads the capacitive sensor value with 30 sample
+  long total1 =  capacSensor.capacitiveSensor(30);   
+
+  // Stores in the targetAngle variable the constrained and then mapped to 180 degree value of the capacitive sensor given the min and max constants set above  
+  int targetAngle = map(constrain(total1, capacSensorMin, capacSensorMax), capacSensorMin, capacSensorMax, 0, 180);
+  // Prints the calculated target angle to the serial monitor
+  Serial.println(targetAngle);
+  // Sets the servo to the target angle
+  myServo.write(targetAngle);
+  // Waits for 100ms to make sure the servo can move to the given position before getting another command
+  delay(100);
+}
+        </code>
+      </pre>
+    </div>
+    
+    <h2>circuit's opetration (animated gif)</h2>
+    <figure>
+      <img src="assets/a4/demo.gif">
+      <figcaption>GIF of the circuit working</figcaption>
+    </figure>
+
+    <h2>questions (text)</h2>
+    <h3>1: Say you are using a servo motor you attach to pin 9. In your loop() you have the following code:</h3> 
+    <pre><code>
+void loop() { 
+  for (pos = 0; pos <= 180; pos += 1) { 
+    myservo.write(pos);  
+    delay(100);  
+    } 
+} 
+</code></pre>
+<h3>Draw a graph with the x-axis as time and the y-axis as voltage at pin 9 with respect to ground.</h3>
+
+    <figure>
+      <img src="assets/a4/chart.png">
+      <figcaption>A screenshot of my work in Excel, showing the chart, and the math behind it</figcaption>
+    </figure>
+    
+    <h3>2: Your input device is slightly broken, leading it to give us an erroneous reading 1% of the time. How can we address this? Answer in (pseudo)code.</h3>
+    <p>This sounds like data spikes which can be fixed using a median filter and/or range limiting. I will be writing pseudocode for a median filter for this question.</p>
+        <pre><code>
+int WINDOW = 10;
+int readings[WINDOW];
+
+
+void loop() {
+	for (int i = 0; i < WINDOW; i++) {
+		readings[i] = analogRead(A0);
+	}
+	sorted = sort(readings);
+	filtered_val = sorted[WINDOW/2]; // USE THIS VALUE
+}
+
+        </code></pre>
+    <h3>3: Your input device is slightly noisy, leading the measurement to randomly deviate from the true measurement up or down by 10%. How can we address this? Answer in (pseudo)code.</h3>
+    <p>This sounds like high frequency noise which can be fixed using a rolling average or low pass filtering. I will be writing pseudocode for a rolling average to smooth the signal for this question.</p>
+        <pre><code>
+const int numForAvg = 10;
+loop:
+  sensorReadingsArray[index] = rawSensorVal;
+  index++;
+  if (index > (numForAvg - 1)) {
+    avgdVal = 0;
+    for (int v : sensorReadingsArray) {
+      avgdVal += v;
+    }
+    index = 0;
+    avgdVal = avgdVal / numForAvg;
+}
+        </code></pre>
+    <h3>4: Did you use AI tools in completing this assignment? If yes, please provide details on how/when, as well as a brief reflection. If no, you can either leave this question blank, or provide other information if you'd like.</h3>
+  </body>
+</html>
