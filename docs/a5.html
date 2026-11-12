@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, maximum-scale=1.0" />
+
+    <title>Quinn's HCDE 439 Physical Computing Page!</title>
+
+    <link href="style.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <h1>Quinn's Assignment 5!</h1>
+    <!-- <div class="header">
+      <img src="red-panda.jpg" />
+      <p>Here is all the documentation for assignment 1!</p>
+    </div> -->
+
+    <h2>schematic (image)</h2>
+    <figure>
+      <img src="assets/a5/schematic.jpg">
+      <figcaption>The circuit schematic</figcaption>
+    </figure>
+    <h3>The transistor can handle a max current. Justify how much current you are using.</h3>
+    <p>The max current of the LED strip is 1.5A (from the manual of the LED strip), this is well below the N mosfets max current rating of 47A (from the datasheet of the IRLZ44N N mosfet)</p>
+    <h3>Expected voltages and currents at crucial spots in circuit</h3>
+    <h4>Arduino Uno 5V to ultrasonic sensor to GND:</h4> 
+    <ul>
+      <li>Voltages: 5V</li>
+      <li>Currents: 15mA (from the datasheet of the HC-SR04 ultrasonic sensor)</li>
+    </ul>
+    <h4>Pin 13 (trig) to pin 12 (Echo):</h4>
+    <ul>
+      <li>Voltages: Pulses of 5V, 0V between pulses</li>
+      <li>Currents: &lt;1mA</li>
+    </ul>
+    <h4>Pin 11 to mosfet gate:</h4> 
+    <ul>
+      <li>Voltages: PWM going from 5V to 0V</li>
+      <li>Currents: &lt;1mA (from the datasheet of the IRLZ44N N mosfet)</li>
+    </ul>
+    <h4>Positive terminal of power supply to positive terminal of LED strip: </h4>
+    <ul>
+      <li>Voltages: 12V (from the manual of the power supply)</li>
+      <li>Currents: 1.5A (from the manual of the LED strip)</li>
+    </ul>
+    <h2>circuit (image)</h2>
+    <figure>
+      <img src="assets/a5/circuit.jpg">
+      <figcaption>The physical manifestation of my circuit schematic</figcaption>
+    </figure>
+
+    <h2>firmware (code snippet)</h2>
+    <div>
+      <pre><code>
+// Imports Ultrasonic library created by Erick Simões 
+#include <Ultrasonic.h>
+
+// Creates the ultrasonic sensor object. Pin 13 is trigger (sends the sound) and pin 12 is echo (recieves the sound)
+Ultrasonic distSensor(13, 12);
+
+// Defines the minimum and maximum values to constrain the sensor value to
+const int minSensorLim = 0;
+const int maxSensorLim = 50;
+// Defines the variables neccessary for the timer logic used in place of delay()
+// Fun fact, overflow won't actually break the logic as long as all vars related to the timer function are same datatype
+unsigned long prevMillis = 0;
+const unsigned long readInterval = 50;
+
+void setup() {
+  // Sets the pin that connects to the MOSFET gate pin to OUTPUT so the Arduino can control it and by extension, the LED strip
+  pinMode(11, OUTPUT);
+  // Sets baud rate for logs
+  Serial.begin(9600);
+}
+
+void loop() {
+  // Sets currMillis to the current runtime milliseconds
+  unsigned long currMillis = millis();
+
+  // If the time defined in readInterval has passed run the logic inside
+  if (currMillis - prevMillis >= readInterval) {
+    // Updates prevMillis for the next check on the next loop
+    prevMillis = currMillis;
+
+    // Reads the sensor value (distance in CM), constrains the value to the vars minSensorLim and maxSensorLim defined earlier, and maps them to PWM in reverse such that the shorter the distance, the brighter the light
+    // Fun fact, constrain() calls whatever is in the read() 3 times if you don't  ( [Call #1] < 0 ) ? 0 : ( ( [Call #2] > 100 ) ? 100 : [Call #3] )
+    int sensorVal = distSensor.read(CM);
+    int sensorValConstrainedAndMapped = map(constrain(sensorVal, minSensorLim, maxSensorLim), minSensorLim, maxSensorLim, 255, 0);
+    // Prints the raw sensor value and the mapped sensor value to the serial monitor
+    Serial.println(sensorVal);
+    Serial.println(sensorValConstrainedAndMapped);
+    Serial.println();
+    // Writes to pin 11 the sensor value that is now constrained and mapped to PWM brightness values   
+    analogWrite(11, sensorValConstrainedAndMapped);
+  }
+}
+        </code>
+      </pre>
+    </div>
+    
+    <h2>circuit's operation (animated gif)</h2>
+    <figure>
+      <img src="assets/a5/demo.gif">
+      <figcaption>GIF of the circuit working</figcaption>
+    </figure>
+
+    <h2>questions (text)</h2>
+    <h3>1: Read the text on your mosfet to see which one you have. For your mosfet, what is the absolute maximum amount of current between pins 2 and 3?</h3> 
+    <p>The mosfet in my kit is a IRLZ44N. The absolute maximum amount of current between pin 2 (drain) and pin 3 (source) at 25°C is 47 amps, at 100°C is 33 amps, and during a short pulse is 160 amps.</p>
+    
+    <h3>2: Draw a schematic for a circuit with using at least your arduino, a DC motor, and a flyback diode. Find parts with datasheets you could use for each of these schematic components.</h3>
+    <ul>
+      <li>Arduino: Arduino Uno R3</li>
+      <li>DC motor: Adafruit Industries RB-Ada-142, operating voltage range from 4.5V-9V, loaded current max of 250mA.</li>
+      <li>Flyback diode: Diotec Semiconductor 1N4007</li>
+      <li>Resistor: YAGEO MFP50SBBE52-800R, 800 Ohms</li>
+    </ul>
+    <figure>
+      <img src="assets/a5/q2.jpg">
+      <figcaption>Schematic</figcaption>
+    </figure>
+    <figure>
+      <img src="assets/a5/q2Calcs.jpg">
+      <figcaption>Calculation for resistor value</figcaption>
+    </figure>
+        
+    <h3>3: Draw a schematic using at least your arduino, the L293D chip, and two motors. Write (pseudo) code that shows how you would move the motors both forward, both back, then one forward one back, and one back then forward.</h3>
+    <figure>
+      <img src="assets/a5/q3.jpg">
+      <figcaption>Schematic</figcaption>
+    </figure>
+    <h4>code</h4>
+    <pre><code>
+int enableL = 7; // Pin 7 connected to enable 
+int enableR = 8; // Pin 8 connected to enable 
+
+int motorL_ccw = 6; // Pin 6 connected to motor control 1A 
+int motorR_ccw = 9; // Pin 9 connected to motor control 4A 
+
+int motorL_cw = 5; // Pin 5 connected to motor control 2A
+int motorR_cw = 10; // Pin 10 connected to motor control 3A    
+
+void setup() {
+  // Set the pins
+  pinMode(enableL, OUTPUT);
+  pinMode(enableR, OUTPUT);
+  pinMode(motorL_ccw, OUTPUT);
+  pinMode(motorR_ccw, OUTPUT);
+  pinMode(motorL_cw, OUTPUT);
+  pinMode(motorR_cw, OUTPUT);
+
+  // Enable both motor drivers all the time
+  digitalWrite(enableL, HIGH);
+  digitalWrite(enableR, HIGH);
+}
+
+void loop() {
+  //brake the motor
+  digitalWrite(motorL_ccw, LOW);
+  digitalWrite(motorL_cw, LOW);
+  digitalWrite(motorR_ccw, LOW);
+  digitalWrite(motorR_cw, LOW);
+  delay(100);
+  //run the motors CW
+  digitalWrite(motorL_ccw, LOW);
+  digitalWrite(motorL_cw, HIGH);
+  digitalWrite(motorR_ccw, LOW);
+  digitalWrite(motorR_cw, HIGH);
+  delay(100);
+  //run the motors CCW
+  digitalWrite(motorL_ccw, HIGH);
+  digitalWrite(motorL_cw, LOW);
+  digitalWrite(motorR_ccw, HIGH);
+  digitalWrite(motorR_cw, LOW);
+  delay(100);
+  //run L motor CW R motor CCW
+  digitalWrite(motorL_ccw, LOW);
+  digitalWrite(motorL_cw, HIGH);
+  digitalWrite(motorR_ccw, HIGH);
+  digitalWrite(motorR_cw, LOW);
+  delay(100);
+  //run L motor CCW R motor CW
+  digitalWrite(motorR_ccw, LOW);
+  digitalWrite(motorR_cw, HIGH);
+  digitalWrite(motorL_ccw, HIGH);
+  digitalWrite(motorL_cw, LOW);
+  delay(100);
+}
+        </code></pre>
+    <h3>4: Did you use AI tools in completing this assignment? If yes, please provide details on how/when, as well as a brief reflection. If no, you can either leave this question blank, or provide other information if you'd like.</h3>
+  </body>
+</html>
